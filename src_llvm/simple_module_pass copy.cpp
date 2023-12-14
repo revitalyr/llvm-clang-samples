@@ -30,19 +30,14 @@ static std::string LLVMTypeAsString(const Type *T) {
 class GVNames : public ModulePass {
 public:
   GVNames() : ModulePass(ID) {
-    std::cout << "MAKING A GVNames" << std::endl;
   }
 
   virtual bool runOnModule(Module &M) {
-    std::cout << "RUNONMODULE" << std::endl;
     for (Module::const_global_iterator GI = M.global_begin(),
                                        GE = M.global_end();
          GI != GE; ++GI) {
-      std::cout << "FOR LOOP" << std::endl;
       outs() << "Found global named \"" << GI->getName()
              << "\": type = " << LLVMTypeAsString(GI->getType()) << "\n";
-      // std::cout << "Found global named \"" << (std::string) GI->getName()
-      //        << "\": type = " << LLVMTypeAsString(GI->getType()) << "\n";
     }
 
     for (Module::const_alias_iterator GI = M.alias_begin(),
@@ -91,18 +86,11 @@ int main(int argc, char **argv) {
     Err.print(argv[0], errs());
     return 1;
   }
-  else
-  {
-    std::cout << "MADE A LLVM MODULE" << std::endl;
-  }
 
   // Create a pass manager and fill it with the passes we want to run.
   legacy::PassManager PM;
   PM.add(new GVNames());
   PM.run(*Mod);
-
-  std::cout << "done passing over IR." << std::endl;
-
 
   std::string Str;
   raw_string_ostream OS(Str);
