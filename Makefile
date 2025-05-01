@@ -52,7 +52,7 @@
 #  7  -Wl,--end-group    changed to  -Wl,
 
 # LLVM_SRC_PATH := $$HOME/llvm/llvm_svn_rw
-LLVM_SRC_PATH := /usr/local/opt/llvm
+LLVM_SRC_PATH ?= /usr/local/opt/llvm
 
 # LLVM_BUILD_PATH is the directory in which you built LLVM - where you ran
 # configure or cmake.
@@ -89,8 +89,8 @@ PLUGIN_LDFLAGS := -shared -undefined dynamic_lookup
 # These are required when compiling vs. a source distribution of Clang. For
 # binary distributions llvm-config --cxxflags gives the right path.
 CLANG_INCLUDES := \
-	-I$(LLVM_SRC_PATH)/tools/clang/include \
-	-I$(LLVM_BUILD_PATH)/tools/clang/include
+	-I$(LLVM_SRC_PATH)/include \
+	-I$(LLVM_BUILD_PATH)/include
 
 # List of Clang libraries to link. The proper -L will be provided by the
 # call to llvm-config
@@ -239,3 +239,9 @@ clean:
 
 format:
 	find . -name "*.cpp" | xargs clang-format -style=file -i
+
+.PHONY: list
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | grep -E -v -e '^[^[:alnum:]]' -e '^$@$$'
+# IMPORTANT: The line above must be indented by (at least one) 
+#            *actual TAB character* - *spaces* do *not* work.
