@@ -20,24 +20,24 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace llvm;
+//using namespace llvm;
 
-class AllocaSizeDetect : public Pass {
+class AllocaSizeDetect : public llvm::Pass {
 public:
-  AllocaSizeDetect() : Pass(PassKind::PT_Module, ID) {}
+  AllocaSizeDetect() : Pass(llvm::PassKind::PT_Module, ID) {}
 
-  bool runOnModule(Module &M) {
+  bool runOnModule(llvm::Module &M) {
     std::cout << __FUNCTION__ << "\n";
     auto const & BB = M;
-    const DataLayout &DL = M.getDataLayout();
+    const llvm::DataLayout &DL = M.getDataLayout();
     for (auto II = BB.begin(), II_e = BB.end(); II != II_e;
          ++II) {
       // Iterate over each instruction in the BasicBlock. If the instruction
       // is an alloca, dump its type and query the type's size.
-      if (AllocaInst const *Alloca = dyn_cast<AllocaInst>(II)) {
-        Type *AllocType = Alloca->getAllocatedType();
-        AllocType->print(outs());
-        /*outs()*/ std::cout << " size " << DL.getTypeSizeInBits(AllocType) << " bits\n";
+      if (llvm::AllocaInst const *Alloca = dyn_cast<llvm::AllocaInst>(II)) {
+        llvm::Type *AllocType = Alloca->getAllocatedType();
+        AllocType->print(llvm::outs());
+        llvm::outs() << " size " << DL.getTypeSizeInBits(AllocType) << " bits\n";
       }
     }
 
@@ -46,8 +46,8 @@ public:
     return false;
   }
 
-  Pass *createPrinterPass(raw_ostream &OS,
-    const std::string &Banner) const override{
+  Pass *createPrinterPass(llvm::raw_ostream &OS,
+    const std::string &Banner) const override {
       assert(false  &&  __FUNCTION__);
     };
 
@@ -61,26 +61,26 @@ char AllocaSizeDetect::ID = 0;
 
 int main(int argc, char **argv) {
   if (argc < 2) {
-    errs() << "Usage: " << argv[0] << " <IR file>\n";
+    llvm::errs() << "Usage: " << argv[0] << " <IR file>\n";
     return 1;
   }
 
   try {
     // Parse the input LLVM IR file into a module.
-    SMDiagnostic Err;
-    LLVMContext Context;
-    std::unique_ptr<Module> Mod(parseIRFile(argv[1], Err, Context));
-    if (!Mod) {
-      Err.print(argv[0], errs());
-      return 1;
-    }
+    llvm::SMDiagnostic Err;
+    llvm::LLVMContext Context;
+    auto Mod{ parseIRFile(argv[1], Err, Context) };
 
     // Create a pass manager and fill it with the passes we want to run.
-    legacy::PassManager PM;
-    PM.add(new AllocaSizeDetect());
+    llvm::legacy::PassManager PM;
+    auto  asd{ std::make_unique<AllocaSizeDetect>() };
+    auto  p_asd{ asd.get() };
+    PM.add(p_asd);
     PM.run(*Mod);
+    std::cout << "done\n";
   } catch (...) {
     std::cerr << "exception\n";
+    return 1;
   }
 
   return 0;
