@@ -71,12 +71,12 @@ $(info Using LLVM_BUILD_PATH = $(LLVM_BUILD_PATH))
 $(info Using LLVM_BIN_PATH = $(LLVM_BIN_PATH))
 $(info -----------------------------------------------)
 
-CXX := g++
-CXXFLAGS := -fno-rtti -O0 -g
+CXX := clang++
+CXXFLAGS := -fno-rtti -O0 -g 
 PLUGIN_CXXFLAGS := -fpic
 
-LLVM_CXXFLAGS := `$(LLVM_BIN_PATH)/llvm-config --cxxflags`
-LLVM_LDFLAGS := `$(LLVM_BIN_PATH)/llvm-config --ldflags --libs --system-libs`
+LLVM_CXXFLAGS := -I${LLVM_SRC_PATH}/include -std=c++20 -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS	#`$(LLVM_BIN_PATH)/llvm-config --cxxflags`
+LLVM_LDFLAGS := -L/usr/lib/llvm-10/lib -lLLVM-10 #`$(LLVM_BIN_PATH)/llvm-config --ldflags --libs --system-libs`
 
 # Plugins shouldn't link LLVM and Clang libs statically, because they are
 # already linked into the main executable (opt or clang). LLVM doesn't like its
