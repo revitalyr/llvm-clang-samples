@@ -17,8 +17,8 @@ set -x
 
 BINARY_DIR_PATH=${BINARY_DIR_PATH:-$LLWM_HOME}
 
-make -j8 \
-  CXX=$BINARY_DIR_PATH/bin/clang++ \
+make \
+  CXX=clang++ \
   LLVM_SRC_PATH=$BINARY_DIR_PATH \
   LLVM_BUILD_PATH=$BINARY_DIR_PATH/bin \
   LLVM_BIN_PATH=$BINARY_DIR_PATH/bin \
