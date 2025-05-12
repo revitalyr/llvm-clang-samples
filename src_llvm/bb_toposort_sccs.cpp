@@ -23,10 +23,12 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
+#include <ranges>
 #include <string>
 #include <vector>
 
 using namespace llvm;
+namespace rng = std::ranges;
 
 // Runs a topological sort on the basic blocks of the given function. Uses
 // the simple recursive DFS from "Introduction to algorithms", with 3-coloring
@@ -37,8 +39,8 @@ public:
   void runToposort(const Function &F) {
     outs() << "Topological sort of " << F.getName() << ":\n";
     // Initialize the color map by marking all the vertices white.
-    for (Function::const_iterator I = F.begin(), IE = F.end(); I != IE; ++I) {
-      ColorMap[&*I] = TopoSorter::WHITE;
+    for (auto &I : rng::subrange(F.begin(), F.end())) {
+      ColorMap[&I] = TopoSorter::WHITE;
     }
 
     // The BB graph has a single entry vertex from which the other BBs should
@@ -46,10 +48,8 @@ public:
     bool success = recursiveDFSToposort(&F.getEntryBlock());
     if (success) {
       // Now we have all the BBs inside SortedBBs in reverse topological order.
-      for (BBVector::const_reverse_iterator RI = SortedBBs.rbegin(),
-                                            RE = SortedBBs.rend();
-           RI != RE; ++RI) {
-        outs() << "  " << (*RI)->getName() << "\n";
+      for (auto RI : rng::subrange(SortedBBs.rbegin(), SortedBBs.rend())) {
+        outs() << "  " << RI->getName() << "\n";
       }
     } else {
       outs() << "  Sorting failed\n";
