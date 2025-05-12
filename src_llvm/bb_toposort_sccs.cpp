@@ -73,7 +73,7 @@ private:
     ColorMap[BB] = TopoSorter::GREY;
     // For demonstration, using the lowest-level APIs here. A BB's successors
     // are determined by looking at its terminator instruction.
-    const TerminatorInst *TInst = BB->getTerminator();
+    const auto *TInst = BB->getTerminator();
     for (unsigned I = 0, NSucc = TInst->getNumSuccessors(); I < NSucc; ++I) {
       BasicBlock *Succ = TInst->getSuccessor(I);
       Color SuccColor = ColorMap[Succ];
@@ -83,8 +83,10 @@ private:
       } else if (SuccColor == TopoSorter::GREY) {
         // This detects a cycle because grey vertices are all ancestors of the
         // currently explored vertex (in other words, they're "on the stack").
-        outs() << "  Detected cycle: edge from " << BB->getName() << " to "
-               << Succ->getName() << "\n";
+        auto const *bb_name{BB->getName().data()};
+        auto const *succ_name{Succ->getName().data()};
+        outs() << "  Detected cycle: edge from " << bb_name << " to "
+               << succ_name << "\n";
         return false;
       }
     }
