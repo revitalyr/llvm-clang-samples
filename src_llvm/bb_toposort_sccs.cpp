@@ -23,12 +23,15 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include <ranges>
 #include <string>
 #include <vector>
+#include <ranges>
 
-using namespace llvm;
-namespace rng = std::ranges;
+//using namespace llvm;
+using llvm::outs;
+using llvm::BasicBlock;
+
+namespace rv = std::ranges::views;
 
 // Runs a topological sort on the basic blocks of the given function. Uses
 // the simple recursive DFS from "Introduction to algorithms", with 3-coloring
@@ -36,19 +39,19 @@ namespace rng = std::ranges;
 // test.
 class TopoSorter {
 public:
-  void runToposort(const Function &F) {
+  void runToposort(const llvm::Function &F) {
+    
     outs() << "Topological sort of " << F.getName() << ":\n";
     // Initialize the color map by marking all the vertices white.
-    for (auto &I : rng::subrange(F.begin(), F.end())) {
+    for (auto &I : llvm::make_range(F.begin(), F.end())) {
       ColorMap[&I] = TopoSorter::WHITE;
     }
 
     // The BB graph has a single entry vertex from which the other BBs should
     // be discoverable - the function entry block.
-    bool success = recursiveDFSToposort(&F.getEntryBlock());
-    if (success) {
+    if (recursiveDFSToposort(&F.getEntryBlock())) {
       // Now we have all the BBs inside SortedBBs in reverse topological order.
-      for (auto RI : rng::subrange(SortedBBs.rbegin(), SortedBBs.rend())) {
+      for (auto RI : llvm::make_range(SortedBBs.rbegin(), SortedBBs.rend())) {
         outs() << "  " << RI->getName() << "\n";
       }
     } else {
@@ -59,10 +62,11 @@ public:
 private:
   enum Color { WHITE, GREY, BLACK };
   // Color marks per vertex (BB).
-  typedef DenseMap<const BasicBlock *, Color> BBColorMap;
+  using BBColorMap = llvm::DenseMap<const BasicBlock *, Color>;
   // Collects vertices (BBs) in "finish" order. The first finished vertex is
   // first, and so on.
-  typedef SmallVector<const BasicBlock *, 32> BBVector;
+  using BBVector = llvm::SmallVector<const BasicBlock *, 32>;
+
   BBColorMap ColorMap;
   BBVector SortedBBs;
 
@@ -74,9 +78,9 @@ private:
     // For demonstration, using the lowest-level APIs here. A BB's successors
     // are determined by looking at its terminator instruction.
     const auto *TInst = BB->getTerminator();
-    for (unsigned I = 0, NSucc = TInst->getNumSuccessors(); I < NSucc; ++I) {
-      BasicBlock *Succ = TInst->getSuccessor(I);
-      Color SuccColor = ColorMap[Succ];
+    for (unsigned I: rv::iota(0u, TInst->getNumSuccessors())) {
+      const auto *Succ = TInst->getSuccessor(I);
+      auto SuccColor = ColorMap[Succ];
       if (SuccColor == TopoSorter::WHITE) {
         if (!recursiveDFSToposort(Succ))
           return false;
@@ -97,12 +101,12 @@ private:
   }
 };
 
-class AnalyzeBBGraph : public FunctionPass {
+class AnalyzeBBGraph : public llvm::FunctionPass {
 public:
   AnalyzeBBGraph(const std::string &AnalysisKind)
       : FunctionPass(ID), AnalysisKind(AnalysisKind) {}
 
-  virtual bool runOnFunction(Function &F) {
+  virtual bool runOnFunction(llvm::Function &F) {
     if (AnalysisKind == "-topo") {
       TopoSorter TS;
       TS.runToposort(F);
@@ -111,24 +115,19 @@ public:
       // Note that this doesn't detect cycles so if the graph is not a DAG, the
       // result is not a true topological sort.
       outs() << "Basic blocks of " << F.getName() << " in post-order:\n";
-      for (po_iterator<BasicBlock *> I = po_begin(&F.getEntryBlock()),
-                                     IE = po_end(&F.getEntryBlock());
-           I != IE; ++I) {
-        outs() << "  " << (*I)->getName() << "\n";
+      for (auto I: llvm::make_range(po_begin(&F.getEntryBlock()), po_end(&F.getEntryBlock()))) {
+        outs() << "  " << I->getName() << "\n";
       }
     } else if (AnalysisKind == "-scc") {
       // Use LLVM's Strongly Connected Components (SCCs) iterator to produce
       // a reverse topological sort of SCCs.
       outs() << "SCCs for " << F.getName() << " in post-order:\n";
-      for (scc_iterator<Function *> I = scc_begin(&F), IE = scc_end(&F);
-           I != IE; ++I) {
+      for (const auto I: llvm::make_range(scc_begin(&F), scc_end(&F))) {
         // Obtain the vector of BBs in this SCC and print it out.
-        const std::vector<BasicBlock *> &SCCBBs = *I;
+        const auto &SCCBBs = I;
         outs() << "  SCC: ";
-        for (std::vector<BasicBlock *>::const_iterator BBI = SCCBBs.begin(),
-                                                       BBIE = SCCBBs.end();
-             BBI != BBIE; ++BBI) {
-          outs() << (*BBI)->getName() << "  ";
+        for (const auto BBI: llvm::make_range(SCCBBs.begin(), SCCBBs.end())) {
+          outs() << BBI->getName() << "  ";
         }
         outs() << "\n";
       }
@@ -151,21 +150,21 @@ char AnalyzeBBGraph::ID = 0;
 int main(int argc, char **argv) {
   if (argc < 3) {
     // Using very basic command-line argument parsing here...
-    errs() << "Usage: " << argv[0] << " -[topo|po|scc] <IR file>\n";
+    llvm::errs() << "Usage: " << argv[0] << " -[topo|po|scc] <IR file>\n";
     return 1;
   }
 
   // Parse the input LLVM IR file into a module.
-  SMDiagnostic Err;
-  LLVMContext Context;
-  std::unique_ptr<Module> Mod(parseIRFile(argv[2], Err, Context));
+  llvm::SMDiagnostic Err;
+  llvm::LLVMContext Context;
+  std::unique_ptr<llvm::Module> Mod(parseIRFile(argv[2], Err, Context));
   if (!Mod) {
-    Err.print(argv[0], errs());
+    Err.print(argv[0], llvm::errs());
     return 1;
   }
 
   // Create a pass manager and fill it with the passes we want to run.
-  legacy::PassManager PM;
+  llvm::legacy::PassManager PM;
   PM.add(new AnalyzeBBGraph(std::string(argv[1])));
   PM.run(*Mod);
 
