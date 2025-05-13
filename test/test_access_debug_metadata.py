@@ -41,6 +41,10 @@ define void @structadder(%struct.mystruct* byval nocapture readonly align 8 %a, 
 PROG = 'access_debug_metadata'
 
 class TestAccessDebugMetadata(SamplesTestCase):
+    @unittest.expectedFailure
+    def test_usage(self):
+        self.assertSampleOutput([PROG], '', 'Usage: ./build/access_debug_metadata <IR file>')
+
     def test_diamond_cfg(self):
         self.assertSampleOutput([PROG], 'diamond-cfg.ll', '')
 
