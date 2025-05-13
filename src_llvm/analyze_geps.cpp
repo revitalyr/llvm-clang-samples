@@ -29,9 +29,9 @@ template <typename T> static std::string ToString(const T *Obj) {
   return OS.str();
 }
 
-class AnalyzeGEPPass : public BasicBlockPass {
+class AnalyzeGEPPass : public llvm::Pass {
 public:
-  AnalyzeGEPPass() : BasicBlockPass(ID) {}
+  AnalyzeGEPPass() : llvm::Pass(llvm::PassKind::PT_Module, ID) {}
 
   virtual bool runOnBasicBlock(BasicBlock &BB) {
     for (auto II = BB.begin(), II_e = BB.end(); II != II_e; ++II) {
@@ -57,7 +57,11 @@ public:
     return false;
   }
 
-  // The address of this member is used to uniquely identify the class. This is
+  Pass *createPrinterPass(llvm::raw_ostream &OS, const std::string &Banner) const override {
+      assert(false  &&  __FUNCTION__);
+  };
+
+    // The address of this member is used to uniquely identify the class. This is
   // used by LLVM's own RTTI mechanism.
   static char ID;
 };
